@@ -1,0 +1,16 @@
+---
+description: pywebview desktop shell and sidecar lifecycle
+globs: desktop/**/*,scripts/**/*
+alwaysApply: false
+---
+
+# Desktop
+
+- Use **pywebview**, not Tauri or Electron.
+- Start FastAPI on `127.0.0.1`; if the preferred port is busy, try through 8010 and load that origin in the window.
+- Window ~1400×900, title `FinAlly`, dark background.
+- Sidecar must exit when the window closes. Do not leave uvicorn running.
+- SQLite path: `FINALLY_DB_PATH` or OS app-data `FinAlly/finally.db`.
+- Start/stop scripts wrap the desktop entrypoint — not `docker run`. Keep macOS and Windows scripts; implement macOS first.
+- Never expose the API on the LAN (`0.0.0.0`). Never `file://`.
+- Graded launch is the window. Browser against the same loopback origin is a dev shortcut only.

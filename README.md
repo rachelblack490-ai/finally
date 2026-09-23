@@ -1,62 +1,71 @@
-# FinAlly — AI Trading Workstation
+# FinAlly
 
-A visually stunning AI-powered trading workstation that streams live market data, simulates portfolio trading, and integrates an LLM chat assistant that can analyze positions and execute trades via natural language.
+Desktop AI trading workstation: live prices, a simulated portfolio, and a chat assistant that can trade by structured JSON.
 
-Built entirely by coding agents as a capstone project for an agentic AI coding course.
+The product is a **pywebview** window over FastAPI on `127.0.0.1`. Opening a browser on port 8000 is a dev shortcut, not the app.
+
+> [!NOTE]
+> Active spec: [`planning/CURSOR_PLAN.md`](planning/CURSOR_PLAN.md). Market data in `backend/app/market/` is done. The rest of the desktop shell, UI, and portfolio APIs are still to be built.
 
 ## Features
 
-- **Live price streaming** via SSE with green/red flash animations
-- **Simulated portfolio** — $10k virtual cash, market orders, instant fills
-- **Portfolio visualizations** — heatmap (treemap), P&L chart, positions table
-- **AI chat assistant** — analyzes holdings, suggests and auto-executes trades
-- **Watchlist management** — track tickers manually or via AI
-- **Dark terminal aesthetic** — Bloomberg-inspired, data-dense layout
+- Live SSE prices (green/red flash), watchlist, sparklines, main chart
+- $10,000 virtual cash; market orders only; no fees
+- Heatmap, P&L chart, positions table
+- Chat via **OpenCode Zen** (or `LLM_MOCK=true`) — auto-executes trades and watchlist changes
+- Simulator by default; **Massive** when `MASSIVE_API_KEY` is set
 
-## Architecture
+## Stack
 
-Single Docker container serving everything on port 8000:
+| Layer | Choice |
+|---|---|
+| Window | pywebview |
+| UI | Next.js + TypeScript + Tailwind (static export, served by FastAPI) |
+| API | FastAPI / uv on loopback |
+| DB | SQLite (`FINALLY_DB_PATH` or OS app-data) |
+| Chat | LiteLLM → OpenCode Zen |
+| Market | GBM simulator or Massive REST |
 
-- **Frontend**: Next.js (static export) with TypeScript and Tailwind CSS
-- **Backend**: FastAPI (Python/uv) with SSE streaming
-- **Database**: SQLite with lazy initialization
-- **AI**: LiteLLM → OpenRouter (Cerebras inference) with structured outputs
-- **Market data**: Built-in GBM simulator (default) or Massive API (optional)
-
-## Quick Start
+## Setup
 
 ```bash
-# Clone and configure
 cp .env.example .env
-# Add your OPENROUTER_API_KEY to .env
-
-# Run with Docker
-docker build -t finally .
-docker run -v finally-data:/app/db -p 8000:8000 --env-file .env finally
-
-# Open http://localhost:8000
+# Set OPENCODE_API_KEY, or LLM_MOCK=true
+# Optional: MASSIVE_API_KEY for live quotes
 ```
 
-## Environment Variables
+Market demo (works today):
 
-| Variable | Required | Description |
-|---|---|---|
-| `OPENROUTER_API_KEY` | Yes | OpenRouter API key for AI chat |
-| `MASSIVE_API_KEY` | No | Massive (Polygon.io) key for real market data; omit to use simulator |
-| `LLM_MOCK` | No | Set `true` for deterministic mock LLM responses (testing) |
-
-## Project Structure
-
-```
-finally/
-├── frontend/    # Next.js static export
-├── backend/     # FastAPI uv project
-├── planning/    # Project documentation and agent contracts
-├── test/        # Playwright E2E tests
-├── db/          # SQLite volume mount (runtime)
-└── scripts/     # Start/stop helpers
+```bash
+cd backend
+uv sync --extra dev
+uv run pytest
+uv run market_data_demo.py
 ```
 
-## License
+Desktop launch (once `desktop/` and start scripts exist): FastAPI on `127.0.0.1:8000` (or 8001–8010), then a FinAlly window. Never bind `0.0.0.0`. Never load `file://`.
 
-See [LICENSE](LICENSE).
+## Environment
+
+| Variable | Role |
+|---|---|
+| `OPENCODE_API_KEY` | Zen key for in-app chat |
+| `OPENCODE_MODEL` | Default `openai/mimo-v2.5-free` |
+| `OPENCODE_API_BASE` | Default `https://opencode.ai/zen/v1` |
+| `MASSIVE_API_KEY` | Real market data; empty = simulator |
+| `LLM_MOCK` | `true` = offline deterministic chat |
+| `FINALLY_HOST` / `FINALLY_PORT` | Loopback bind (`127.0.0.1:8000`) |
+| `FINALLY_DB_PATH` | SQLite file; empty = `FinAlly/finally.db` in app-data |
+
+## Layout
+
+```
+.cursor/     rules, agents, commands, hooks, zen-inference skill
+backend/    FastAPI; market/ complete
+desktop/    pywebview + sidecar launcher
+frontend/   Next.js static export
+planning/   CURSOR_PLAN.md (active), PLAN.md (archive)
+test/       Playwright E2E
+```
+
+Agents should read [`AGENTS.md`](AGENTS.md) and [`planning/CURSOR_PLAN.md`](planning/CURSOR_PLAN.md).

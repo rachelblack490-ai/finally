@@ -1,0 +1,16 @@
+---
+description: Next.js trading-terminal UI conventions
+globs: frontend/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Frontend
+
+- Next.js + TypeScript + Tailwind, `output: 'export'`. Talk only to relative `/api/*` and `/api/stream/*` (same origin).
+- `EventSource` for prices (all-tickers dict). Flash green/red ~500ms. Sparklines + main chart = ticks since load.
+- Watchlist change % is **session** vs seed/open, not last-tick / not “daily”.
+- Desktop-first dense layout: watchlist, main chart, heatmap, P&L chart, positions, trade bar, chat, header.
+- Charts: **Recharts only**. No CORS, no `NEXT_PUBLIC_API_URL`.
+- Theme: `#0d1117` / `#1a1a2e`, accent yellow `#ecad0a`, blue `#209dd7`, purple `#753991` for submit.
+- Header shows live total value, cash, and a connection-status dot (green / yellow / red).
+- Chat shows a loading state (no token stream) and inline confirmations for trades / watchlist changes.

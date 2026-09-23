@@ -1,0 +1,16 @@
+---
+description: FinAlly desktop workstation — active architecture and LLM policy
+alwaysApply: true
+---
+
+# FinAlly
+
+- Active spec: `planning/CURSOR_PLAN.md`. `planning/PLAN.md` is an archive (Docker / browser `:8000` / OpenRouter).
+- Ship a **pywebview** desktop window. Do not treat “open http://localhost:8000” or Docker port-mapping as the product UX.
+- FastAPI binds **`127.0.0.1` only**. Port 8000 is an internal sidecar bind.
+- `backend/app/market/` is complete (cache, GBM simulator, Massive, SSE). Extend it; do not replace it.
+- In-app LLM: OpenCode Zen (`OPENCODE_API_KEY`) or `LLM_MOCK=true`. No OpenRouter default. Use `.cursor/skills/zen-inference/SKILL.md` when writing chat/LLM code.
+- Trading chat is structured JSON (message / trades / watchlist_changes). Do not wire it to OpenCode file or bash tools.
+- SQLite path is `FINALLY_DB_PATH` or OS app-data (`FinAlly/finally.db`), not a Docker volume.
+- One origin: Next.js static export served by FastAPI; pywebview loads that loopback URL. `user_id` stays on all tables. Keep Massive + simulator.
+- Colors: bg `#0d1117` / `#1a1a2e`, yellow `#ecad0a`, blue `#209dd7`, purple `#753991`.

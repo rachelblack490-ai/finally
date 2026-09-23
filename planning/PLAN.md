@@ -1,5 +1,8 @@
 # FinAlly — AI Trading Workstation
 
+> **Archive.** This is the original course spec (Docker, browser on `:8000`, OpenRouter).
+> Active implementation spec: [`CURSOR_PLAN.md`](./CURSOR_PLAN.md) (pywebview desktop app, OpenCode Zen).
+
 ## Project Specification
 
 ## 1. Vision

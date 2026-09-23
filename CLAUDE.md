@@ -2,6 +2,6 @@
 
 All project documentation is in the `planning` directory.
 
-The key document is PLAN.md included in full below; the market data component has been completed and is summarized in the file `planning/MARKET_DATA_SUMMARY.md` with more details in the `planning/archive` folder. Consult these docs only when required. The remainder of the platform is still to be developed.
+The **active** spec is `planning/CURSOR_PLAN.md` (pywebview desktop app, FastAPI on loopback, OpenCode Zen). The original course document `planning/PLAN.md` is archived (Docker, browser on port 8000, OpenRouter). Market data is complete — see `planning/MARKET_DATA_SUMMARY.md` and `planning/archive`. Cursor rules, agents, commands, hooks, and the zen-inference skill live under `.cursor/`.
 
-@planning/PLAN.md
+@planning/CURSOR_PLAN.md

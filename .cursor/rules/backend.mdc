@@ -1,0 +1,18 @@
+---
+description: FastAPI backend conventions and market-data reuse
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# Backend
+
+- uv project; Python 3.12+; Ruff line length 100.
+- Reuse `from app.market import PriceCache, create_market_data_source, create_stream_router`.
+- New routes mount beside the existing SSE router. Do not fork a second price cache.
+- Bind via `FINALLY_HOST` / `FINALLY_PORT` (defaults `127.0.0.1:8000`). Never `0.0.0.0` for the desktop sidecar.
+- SQLite file: `FINALLY_DB_PATH` or OS app-data. Schema in `planning/CURSOR_PLAN.md` §8. Keep `user_id` on every table.
+- Serve the Next.js static export from FastAPI (same origin). Keep Massive **and** the simulator.
+- Trades: market fill at current cache price; reject insufficient cash/shares; sell-to-zero deletes the position; unknown ticker auto-adds watchlist + `add_ticker`.
+- Watchlist POST/DELETE must call `source.add_ticker` / `source.remove_ticker`. Snapshot on start, every 30s, and after each trade.
+- Chat: last 10 turns; zen-inference or `LLM_MOCK`; JSON-parse fallback; 429/missing key is an error, not a silent mock.
+- Tests: `uv run --extra dev pytest`. Keep the existing 73 market tests green.
