@@ -1,0 +1,4 @@
+{
+  "name": "FinAlly",
+  "install": "bash .cursor/install.sh"
+}
