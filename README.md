@@ -34,16 +34,36 @@ cp .env.example .env
 # Optional: MASSIVE_API_KEY for live quotes
 ```
 
-Market demo (works today):
+### Run the desktop app (macOS)
 
 ```bash
-cd backend
-uv sync --extra dev
-uv run pytest
-uv run market_data_demo.py
+./scripts/start_mac.sh      # builds the UI, syncs deps, opens the FinAlly window
+./scripts/stop_mac.sh       # stops the sidecar if still running
 ```
 
-Desktop launch (once `desktop/` and start scripts exist): FastAPI on `127.0.0.1:8000` (or 8001–8010), then a FinAlly window. Never bind `0.0.0.0`. Never load `file://`.
+On Windows use `scripts/start_windows.ps1` / `scripts/stop_windows.ps1` (requires the Edge WebView2 runtime). The window loads a single loopback origin (`http://127.0.0.1:8000`, or the next free port through 8010): FastAPI serves the Next.js static export and the `/api/*` routes on that same origin. Never binds `0.0.0.0`; never loads `file://`.
+
+### Dev shortcut (browser)
+
+```bash
+cd frontend && npm install && npm run build   # produces frontend/out
+cd ../backend && uv sync --extra dev
+LLM_MOCK=true uv run python -m app             # http://127.0.0.1:8000
+```
+
+### Tests
+
+```bash
+cd backend && uv run pytest         # backend + 73 market unit tests
+cd frontend && npm test             # component unit tests (Vitest)
+cd test && npx playwright test      # end-to-end (LLM_MOCK, static UI via FastAPI)
+```
+
+### Market demo (terminal)
+
+```bash
+cd backend && uv run market_data_demo.py
+```
 
 ## Environment
 
