@@ -50,7 +50,10 @@ export function ChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+    const el = scrollRef.current;
+    if (el && typeof el.scrollTo === "function") {
+      el.scrollTo({ top: el.scrollHeight });
+    }
   }, [messages, busy]);
 
   async function submit(e: React.FormEvent) {
