@@ -21,6 +21,9 @@ dev = [
     "pytest-cov>=5.0.0",
     "ruff>=0.7.0",
 ]
+desktop = [
+    "pywebview>=5.0",
+]
 
 [build-system]
 requires = ["hatchling"]
