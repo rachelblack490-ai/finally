@@ -217,6 +217,9 @@ class SimulatorDataSource(MarketDataSource):
         self._task: asyncio.Task | None = None
 
     async def start(self, tickers: list[str]) -> None:
+        if self._task and not self._task.done():
+            logger.warning("Simulator start() ignored: already running")
+            return
         self._sim = GBMSimulator(
             tickers=tickers,
             event_probability=self._event_prob,
@@ -239,7 +242,7 @@ class SimulatorDataSource(MarketDataSource):
         self._task = None
         logger.info("Simulator stopped")
 
-    async def add_ticker(self, ticker: str) -> None:
+    async def add_ticker(self, ticker: str, *, wait_timeout: float = 0.0) -> None:
         if self._sim:
             self._sim.add_ticker(ticker)
             # Seed cache immediately so the ticker has a price right away
@@ -247,12 +250,14 @@ class SimulatorDataSource(MarketDataSource):
             if price is not None:
                 self._cache.update(ticker=ticker, price=price)
             logger.info("Simulator: added ticker %s", ticker)
+        _ = wait_timeout  # interface parity; simulator seeds immediately
 
-    async def remove_ticker(self, ticker: str) -> None:
+    async def remove_ticker(self, ticker: str, *, drop_cache: bool = True) -> None:
         if self._sim:
             self._sim.remove_ticker(ticker)
-        self._cache.remove(ticker)
-        logger.info("Simulator: removed ticker %s", ticker)
+        if drop_cache:
+            self._cache.remove(ticker)
+        logger.info("Simulator: removed ticker %s (drop_cache=%s)", ticker, drop_cache)
 
     def get_tickers(self) -> list[str]:
         return self._sim.get_tickers() if self._sim else []

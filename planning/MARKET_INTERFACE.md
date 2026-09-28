@@ -96,12 +96,15 @@ class MarketDataSource(ABC):
         """Cancel the background task. Idempotent."""
 
     @abstractmethod
-    async def add_ticker(self, ticker: str) -> None:
-        """Watch a new symbol (normalized uppercase). No-op if present."""
+    async def add_ticker(self, ticker: str, *, wait_timeout: float = 0.0) -> None:
+        """Watch a new symbol (normalized uppercase). No-op if present.
+
+        wait_timeout>0: Massive polls until a cache price exists or time is up.
+        """
 
     @abstractmethod
-    async def remove_ticker(self, ticker: str) -> None:
-        """Stop watching and drop the cache row. No-op if absent."""
+    async def remove_ticker(self, ticker: str, *, drop_cache: bool = True) -> None:
+        """Stop watching. drop_cache=False keeps the mark (open position)."""
 
     @abstractmethod
     def get_tickers(self) -> list[str]:
@@ -111,13 +114,13 @@ class MarketDataSource(ABC):
 Implemented by:
 
 - `SimulatorDataSource` — steps GBM every ~500 ms; seeds cache immediately on `start` / `add_ticker`
-- `MassiveDataSource` — polls snapshot every ~15 s; first poll in `start()`; `add_ticker` waits until the **next** poll for a price
+- `MassiveDataSource` — polls snapshot every ~15 s; first poll in `start()`; `add_ticker(..., wait_timeout=seconds)` polls until a price lands or the bound expires
 
 ### Watchlist vs positions
 
-`remove_ticker` **deletes the cached price**. If the user still holds the name, portfolio/heatmap/P&L lose a mark. Product rule ([`CURSOR_PLAN.md`](CURSOR_PLAN.md)): keep the **source subscription** for any open position even if the watchlist row is gone; only unsubscribe when qty is zero.
+`remove_ticker(ticker)` **deletes the cached price**. If the user still holds the name, pass `drop_cache=False` so portfolio/heatmap/P&L keep a mark. Product rule ([`CURSOR_PLAN.md`](CURSOR_PLAN.md)): keep the **source subscription** for any open position even if the watchlist row is gone; only unsubscribe when qty is zero.
 
-`add_ticker` on Massive does **not** guarantee an immediate price. A trade on an unknown ticker must **wait/retry with a bound**, then reject — never fill on a missing or stale cache miss.
+`add_ticker` on Massive does **not** guarantee an immediate price unless `wait_timeout` is set. A trade on an unknown ticker must **wait/retry with a bound**, then reject — never fill on a missing or stale cache miss.
 
 ## Factory
 

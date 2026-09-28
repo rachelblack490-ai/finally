@@ -71,6 +71,28 @@ class TestSimulatorDataSource:
 
         await source.stop()
 
+    async def test_remove_ticker_keeps_mark_when_held(self):
+        cache = PriceCache()
+        source = SimulatorDataSource(price_cache=cache, update_interval=0.1)
+        await source.start(["AAPL", "TSLA"])
+        held = cache.get_price("TSLA")
+
+        await source.remove_ticker("TSLA", drop_cache=False)
+        assert "TSLA" not in source.get_tickers()
+        assert cache.get_price("TSLA") == held
+
+        await source.stop()
+
+    async def test_start_twice_is_noop(self):
+        cache = PriceCache()
+        source = SimulatorDataSource(price_cache=cache, update_interval=0.1)
+        await source.start(["AAPL"])
+        first = source._task
+        await source.start(["MSFT"])
+        assert source._task is first
+        assert set(source.get_tickers()) == {"AAPL"}
+        await source.stop()
+
     async def test_get_tickers(self):
         """Test getting the list of active tickers."""
         cache = PriceCache()

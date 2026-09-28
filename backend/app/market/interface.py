@@ -27,7 +27,7 @@ class MarketDataSource(ABC):
         """Begin producing price updates for the given tickers.
 
         Starts a background task that periodically writes to the PriceCache.
-        Must be called exactly once. Calling start() twice is undefined behavior.
+        Safe to call twice: a second start() is a no-op while the source is running.
         """
 
     @abstractmethod
@@ -39,17 +39,22 @@ class MarketDataSource(ABC):
         """
 
     @abstractmethod
-    async def add_ticker(self, ticker: str) -> None:
+    async def add_ticker(self, ticker: str, *, wait_timeout: float = 0.0) -> None:
         """Add a ticker to the active set. No-op if already present.
 
         The next update cycle will include this ticker.
+
+        If ``wait_timeout`` > 0, block until a price is in the cache or the
+        timeout elapses (Massive). Simulator always seeds immediately.
+        Callers that will fill an order should wait, then reject on cache miss.
         """
 
     @abstractmethod
-    async def remove_ticker(self, ticker: str) -> None:
+    async def remove_ticker(self, ticker: str, *, drop_cache: bool = True) -> None:
         """Remove a ticker from the active set. No-op if not present.
 
-        Also removes the ticker from the PriceCache.
+        If ``drop_cache`` is True (default), also deletes the PriceCache row.
+        Pass ``drop_cache=False`` when the user still holds the name so marks stay.
         """
 
     @abstractmethod

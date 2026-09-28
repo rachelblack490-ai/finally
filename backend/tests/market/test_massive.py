@@ -138,6 +138,42 @@ class TestMassiveDataSource:
         assert "AAPL" not in source.get_tickers()
         assert cache.get("AAPL") is None
 
+    async def test_remove_ticker_keeps_mark_when_held(self):
+        """Open positions must keep a cache row after watchlist remove."""
+        cache = PriceCache()
+        source = MassiveDataSource(api_key="test-key", price_cache=cache)
+        source._tickers = ["AAPL"]
+        cache.update("AAPL", 190.00)
+
+        await source.remove_ticker("AAPL", drop_cache=False)
+        assert "AAPL" not in source.get_tickers()
+        assert cache.get_price("AAPL") == 190.00
+
+    async def test_add_ticker_wait_polls_until_price(self):
+        cache = PriceCache()
+        source = MassiveDataSource(api_key="test-key", price_cache=cache, poll_interval=60.0)
+        source._client = MagicMock()
+
+        with patch.object(
+            source,
+            "_fetch_snapshots",
+            return_value=[_make_snapshot("NVDA", 800.00, 1707580800000)],
+        ):
+            await source.add_ticker("NVDA", wait_timeout=1.0)
+
+        assert cache.get_price("NVDA") == 800.00
+
+    async def test_add_ticker_wait_timeout_leaves_miss(self):
+        cache = PriceCache()
+        source = MassiveDataSource(api_key="test-key", price_cache=cache, poll_interval=60.0)
+        source._client = MagicMock()
+
+        with patch.object(source, "_fetch_snapshots", return_value=[]):
+            await source.add_ticker("NVDA", wait_timeout=0.3)
+
+        assert cache.get_price("NVDA") is None
+        assert "NVDA" in source.get_tickers()
+
     async def test_get_tickers(self):
         """Test getting the list of active tickers."""
         cache = PriceCache()
@@ -183,6 +219,20 @@ class TestMassiveDataSource:
         # Stop and verify task is cancelled
         await source.stop()
         assert source._task is None
+
+    async def test_start_twice_is_noop(self):
+        cache = PriceCache()
+        source = MassiveDataSource(api_key="test-key", price_cache=cache, poll_interval=60.0)
+
+        with patch("app.market.massive_client.RESTClient"):
+            with patch.object(source, "_fetch_snapshots", return_value=[]):
+                await source.start(["AAPL"])
+                first = source._task
+                await source.start(["MSFT"])
+                assert source._task is first
+                assert source.get_tickers() == ["AAPL"]
+
+        await source.stop()
 
     async def test_start_immediate_poll(self):
         """Test that start() does an immediate poll before starting the loop."""
