@@ -1,5 +1,7 @@
 """Tests for PriceCache."""
 
+from concurrent.futures import ThreadPoolExecutor
+
 from app.market.cache import PriceCache
 
 
@@ -48,6 +50,29 @@ class TestPriceCache:
         """Test removing a ticker that doesn't exist."""
         cache = PriceCache()
         cache.remove("AAPL")  # Should not raise
+
+    def test_remove_bumps_version(self):
+        """SSE clients must see a version change when a ticker disappears."""
+        cache = PriceCache()
+        cache.update("AAPL", 190.00)
+        version = cache.version
+        cache.remove("AAPL")
+        assert cache.version == version + 1
+        cache.remove("AAPL")
+        assert cache.version == version + 1
+
+    def test_concurrent_writers(self):
+        """Lock must keep version and map consistent under threads."""
+        cache = PriceCache()
+
+        def write(i: int) -> None:
+            cache.update(f"T{i % 5}", 100.0 + i)
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            list(pool.map(write, range(100)))
+
+        assert cache.version == 100
+        assert len(cache) == 5
 
     def test_get_all(self):
         """Test getting all prices."""

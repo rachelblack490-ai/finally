@@ -84,6 +84,15 @@ class TestGBMSimulator:
         sim.add_ticker("GOOGL")
         assert sim._cholesky is not None  # Now 2 tickers, matrix exists
 
+    def test_cholesky_full_default_watchlist(self):
+        """Default 10-ticker set must produce a valid Cholesky factor."""
+        tickers = list(SEED_PRICES)
+        sim = GBMSimulator(tickers=tickers)
+        assert sim._cholesky is not None
+        assert sim._cholesky.shape == (len(tickers), len(tickers))
+        result = sim.step()
+        assert set(result) == set(tickers)
+
     def test_cholesky_none_with_one_ticker(self):
         """Test that Cholesky is None with only one ticker."""
         sim = GBMSimulator(tickers=["AAPL"])

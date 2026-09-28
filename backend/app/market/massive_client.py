@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 
 from massive import RESTClient
 from massive.rest.models import SnapshotMarketType
@@ -39,6 +40,9 @@ class MassiveDataSource(MarketDataSource):
         self._client: RESTClient | None = None
 
     async def start(self, tickers: list[str]) -> None:
+        if self._task and not self._task.done():
+            logger.warning("Massive start() ignored: already running")
+            return
         self._client = RESTClient(api_key=self._api_key)
         self._tickers = list(tickers)
 
@@ -63,17 +67,38 @@ class MassiveDataSource(MarketDataSource):
         self._client = None
         logger.info("Massive poller stopped")
 
-    async def add_ticker(self, ticker: str) -> None:
+    async def add_ticker(self, ticker: str, *, wait_timeout: float = 0.0) -> None:
         ticker = ticker.upper().strip()
         if ticker not in self._tickers:
             self._tickers.append(ticker)
             logger.info("Massive: added ticker %s (will appear on next poll)", ticker)
 
-    async def remove_ticker(self, ticker: str) -> None:
+        if wait_timeout <= 0:
+            return
+        if self._cache.get_price(ticker) is not None:
+            return
+
+        deadline = time.monotonic() + wait_timeout
+        while time.monotonic() < deadline:
+            await self._poll_once()
+            if self._cache.get_price(ticker) is not None:
+                return
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            await asyncio.sleep(min(0.25, remaining))
+        logger.warning(
+            "Massive: no price for %s within %.1fs — caller must reject fill",
+            ticker,
+            wait_timeout,
+        )
+
+    async def remove_ticker(self, ticker: str, *, drop_cache: bool = True) -> None:
         ticker = ticker.upper().strip()
         self._tickers = [t for t in self._tickers if t != ticker]
-        self._cache.remove(ticker)
-        logger.info("Massive: removed ticker %s", ticker)
+        if drop_cache:
+            self._cache.remove(ticker)
+        logger.info("Massive: removed ticker %s (drop_cache=%s)", ticker, drop_cache)
 
     def get_tickers(self) -> list[str]:
         return list(self._tickers)
